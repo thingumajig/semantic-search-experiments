@@ -1,32 +1,82 @@
 version: "3.8"
 
 services:
-  elasticsearch_master:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: elasticsearch_master
-    environment:
-      - node.name=elasticsearch_master
-      - XXX_cluster.name=docker-cluster
-      - discovery.type=single-node
-      - XXX_cluster.initial_master_nodes=elasticsearch_master
-      - XXX_node.master=true
-      - bootstrap.memory_lock=true
-      - http.cors.enabled=true
-      - http.cors.allow-origin=*
-      - ES_JAVA_OPTS=-Xms4G -Xmx4G
-      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
-      - xpack.security.enabled=$ELASTIC_SECURITY
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    volumes:
-      - data01:/usr/share/elasticsearch/data
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+    elasticsearch_master:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: elasticsearch_master
+        environment:
+          - node.name=elasticsearch_master
+          - XXX_cluster.name=docker-cluster
+          - discovery.type=single-node
+          - XXX_cluster.initial_master_nodes=elasticsearch_master
+          - XXX_node.master=true
+          - bootstrap.memory_lock=true
+          - http.cors.enabled=true
+          - http.cors.allow-origin=*
+          - ES_JAVA_OPTS=-Xms4G -Xmx4G
+          - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+          - xpack.security.enabled=$ELASTIC_SECURITY
+        ports:
+          - "9200:9200"
+        volumes:
+          - data01:/usr/share/elasticsearch/data
+        ulimits:
+          memlock:
+            soft: -1
+            hard: -1
+        networks:
+            resolute:
+                ipv4_address: 172.21.0.3
+        
+    fastapi_service:
+        build:
+            context: ./fastapi_docker
+            dockerfile: Dockerfile
+        container_name: fastapi_service
+        ports:
+          - "80:80"
+        depends_on:
+          - "elasticsearch_master"
+        volumes:
+          - data01:/usr/share/elasticsearch/data
+        ulimits:
+          memlock:
+            soft: -1
+            hard: -1
+        networks:
+            resolute:
+                ipv4_address: 172.21.0.4
+                
+    streamlit_service:
+        build:
+            context: ./streamlit_docker
+            dockerfile: Dockerfile
+        container_name: streamlit_service
+        ports:
+          - "8501:8501"
+        depends_on:
+          - "elasticsearch_master"
+          - "fastapi_service"
+        volumes:
+          - data01:/usr/share/elasticsearch/data
+        ulimits:
+          memlock:
+            soft: -1
+            hard: -1
+        networks:
+            resolute:
+                ipv4_address: 172.21.0.5
+
+networks:
+    resolute:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.21.0.0/16
+       
 volumes:
   data01:
     driver: local
