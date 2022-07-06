@@ -115,7 +115,7 @@ mapping = {
     "title_emb": {
         "type": "elastiknn_dense_float_vector", # 1
         "elastiknn": {
-            "dims": vector_dims,                        # 2
+            "dims": vector_dims,                # 2
             "model": "lsh",                     # 3
             "similarity": "cosine",             # 4
             "L": 99,                            # 5
@@ -154,3 +154,22 @@ bulk(es, vector_actions(), chunk_size=50, max_retries=10, request_timeout=60)
 
 es.indices.refresh(index=index_name)
 es.indices.forcemerge(index=index_name, max_num_segments=1, request_timeout=300)
+
+def create_mapping_and_reindex(index_name, text_column_name):
+    # 1. add mapping for text_column_name with _emb postfix
+    # 2. recalculate embeddings for each row in index
+    # 3. reindex elastic
+    return None
+
+def reindex_existing_embs(index_name):
+    # 0. get column name set with "*_emb"
+    # 1. get rows without *_emb==Empty
+    # 2. for each row with *_emb==Empty
+    #       recalculate embeddings for new rows
+    # 3. reindex elastic
+    return None
+
+def semantic_search(index_name, emb_field, search_text):
+    # 1. embed search_text
+    # 2. search
+    return None
