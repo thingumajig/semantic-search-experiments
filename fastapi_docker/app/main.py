@@ -29,7 +29,19 @@ async def get_closest(query: str = Form(default=""), num_results: str = Form(def
 async def reindex(index: str = Form(default=""), new_index: str = Form(default="")):
     return pr.reindex(index, new_index)
 
-@app.get("/count/")
-async def count(index: str = Form(default="")):
-    return pr.count_index(index)
+@app.post("/create_mapping_and_reindex/")
+async def create_mapping_and_reindex(index: str = Form(default=""),
+                                     column_name: str = Form(default="")):
+    return pr.create_mapping_and_reindex(index, column_name, empty_only=False)
+
+@app.post("/reindex_existing_embs/")
+async def reindex_existing_embs(index: str = Form(default="")):
+    return pr.reindex_existing_embs(index)
+
+@app.post("/semantic_search/")
+async def semantic_search(index: str = Form(default=""), 
+                column_name: str = Form(default=""), 
+                query: str = Form(default=""), 
+                num_results: str = Form(default="5")):
+    return pr.semantic_search(index, column_name, query, num_results)
 

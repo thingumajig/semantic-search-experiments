@@ -19,11 +19,13 @@ def create_df_from_json(json, k):
     df.sort_values("score", inplace=True, ascending=False)
     return df
 
-# defines an h1 header
-st.title("Семантический поиск")
+st.title("Поиск по embeddings")
+index = st.text_input("Введите индекс:", value="news-headers")
+column_name = st.text_input("Введите column_name:")
 title = st.text_input("Введите текст запроса:")
-num_recs = json.load(open("./settings.json", "r"))["search_k"]
+num_results = json.load(open("./settings.json", "r"))["search_k"]
 if st.button("Поиск"):
-    result = requests.post(f"http://172.21.0.4:80/get_closest/", data={"query":title, "num_results":num_recs}).json()
-    st.write(f"Было найдено {result['hits']['total']['value']} совпадений. Показаны топ-{num_recs}")
-    st.dataframe(create_df_from_json(result, num_recs), width=1000)
+    result = requests.post(f"http://172.21.0.4:80/semantic_search/", data={"index":index, "column_name":column_name, "search_text": title, "num_results": num_results}).json()
+    st.write(f"Было найдено {result['hits']['total']['value']} совпадений. Показаны топ-{num_results}")
+    st.dataframe(create_df_from_json(result, num_results), width=1000)
+    
