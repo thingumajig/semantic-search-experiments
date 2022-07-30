@@ -1,17 +1,58 @@
-import tensorflow_hub as hub
 import numpy as np
-import tensorflow_text
 import pandas as pd
 import os
 import time
+import zipfile
+import requests
+import io
+import base64
+from pathlib import Path
+from PIL import Image
+from time import sleep
 
 from tqdm import tqdm
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 import elasticsearch as eees
 
+        
+def embed_text(text):
+    while True:
+        try:
+            str_vec = requests.post(f"http://172.21.0.6:89/emb_text/", data={"data":text}).json()
+            break
+        except:
+            sleep(0.01)
+            print("Failed to receive response")
+            
+    return np.array([float(x) for x in str_vec.strip("][").split(", ")])
 
-def heads_actions():
+def embed_text_img(text):
+    while True:
+        try:
+            str_vec = requests.post(f"http://172.21.0.6:89/emb_img_text/", data={"data":text}).json()
+            break
+        except:
+            sleep(0.01)
+            print("Failed to receive response")
+            
+    return np.array([float(x) for x in str_vec.strip("][").split(", ")])
+
+def embed_pil_img(img):
+    
+    while True:
+        try:
+            
+            str_vec = requests.post(f"http://172.21.0.6:89/emb_img/", files={'file': ('image.png', img, 'image/png')}).json()
+            break
+        except:
+            sleep(0.01)
+            print("Failed to receive response")
+            
+            
+    return np.array([float(x) for x in str_vec.strip("][").split(", ")])
+
+def heads_actions(df):
     for index, row in df.iterrows():
         # print(row['ID'], row['NEWS_HEAD'])
         # print(embed(row['NEWS_HEAD']).numpy()[0])
@@ -26,7 +67,7 @@ def heads_actions():
         }
         
 
-def vector_actions():
+def vector_actions(df):
     for index, row in df.iterrows():
         yield {
             "_op_type": "update",
@@ -34,7 +75,7 @@ def vector_actions():
 
             "_id": row['ID'],
             "doc": {
-              "title_emb": { "values": embed(row['NEWS_HEAD']).numpy()[0] }
+              "title_emb": { "values": embed_text(row['NEWS_HEAD']) }
             }
         }
 
@@ -56,6 +97,68 @@ def get_by_id(index, id):
     res = es.get(index=index, id=id)
     return res
 
+def add_image(index, column_name, img_path):
+    
+    img = Image.open(img_path)
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    img_byte_arr.seek(0)
+    embed_vector = embed_pil_img(img_byte_arr)
+    img_byte_arr.seek(0)
+    
+    mapping_fields = list(es.indices.get_mapping(index=index)[index]["mappings"]["properties"].keys())
+    if column_name not in mapping_fields:
+        body = {
+                "properties": {
+                    column_name: {"type": "text" },
+                    column_name+"_data": {"type": "binary" },
+                    column_name+"_emb": {
+                        "type": "elastiknn_dense_float_vector", # 1
+                        "elastiknn": {
+                            "dims": vector_dims,                        # 2
+                            "model": "lsh",                     # 3
+                            "similarity": "cosine",             # 4
+                            "L": 99,                            # 5
+                            "k": 3                              # 6
+                            }
+                        }
+                    }
+                }
+        es.indices.put_mapping(body=body, index=index)
+        
+    res = es.index(index=index, id=None, document={column_name: img_path.name, 
+                                                   column_name+"_data": str(base64.b64encode(img_byte_arr.read())), 
+                                                   column_name+"_emb": embed_vector}, refresh="wait_for")
+    
+    return res
+
+def news_addition():
+    tqdm.pandas(desc="pandas processing...")
+    df = pd.read_excel("ЭТ_Новости.xlsx")
+
+    bulk(es, heads_actions(df), chunk_size=1000, max_retries=2)
+
+    es.indices.refresh(index=index_name)
+    es.indices.forcemerge(index=index_name, max_num_segments=1, request_timeout=120)
+
+    bulk(es, vector_actions(df), chunk_size=50, max_retries=10, request_timeout=60)
+
+    es.indices.refresh(index=index_name)
+    es.indices.forcemerge(index=index_name, max_num_segments=1, request_timeout=300)
+
+def image_addition():
+    with zipfile.ZipFile("search_imgs.zip", 'r') as zip_ref:
+        zip_ref.extractall("imgs_for_search")
+        
+    imgs_list = list(Path("./imgs_for_search/").rglob("*.jpg"))
+    i = 0
+    
+    for img_path in imgs_list:
+        add_image(index_name, "image", img_path)
+        i+=1
+        
+    return i
+        
 def add_record(index, column_name, data):
     mapping_fields = list(es.indices.get_mapping(index=index)[index]["mappings"]["properties"].keys())
     if column_name not in mapping_fields:
@@ -74,7 +177,7 @@ def add_embs(index, id, column_name):
     _create_mapping_for_emb(index, column_name)
         
     doc = { 
-              column_name+"_emb": { "values": embed(data).numpy()[0] }
+              column_name+"_emb": { "values": embed_text(data) }
           }
         
     res = es.update(index=index, id=id, body={"doc":doc})
@@ -105,7 +208,7 @@ def search_and_recalc_embs(index, column_name, empty_only=False):
 
                     "_id": hit["_id"],
                     "doc": {
-                      column_name+"_emb": { "values": embed(hit["_source"][column_name]).numpy()[0] }
+                      column_name+"_emb": { "values": embed_text(hit["_source"][column_name]) }
                     }
                 }
                 changed +=1  
@@ -165,10 +268,19 @@ es = Elasticsearch(["http://172.21.0.3:9200"], http_auth=('elastic', 'xxxxxx'), 
 
 while True:
     try:
+        st = requests.get(f"http://172.21.0.6:89/").status_code
+        if st==200:
+            break
+    except:
+        print("Error connecting to embedding server, retrying..", flush=True)
+        time.sleep(5)
+        
+while True:
+    try:
         es.cluster.health(wait_for_status='yellow', request_timeout=10)
         break
     except:
-        print("Error connecting, retrying..", flush=True)
+        print("Error connecting to elasticsearch, retrying..", flush=True)
         time.sleep(5)
         
 index_name = 'news-headers'
@@ -217,21 +329,6 @@ es.cluster.put_settings({
 
 es.indices.refresh(index=index_name)
 
-embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-multilingual/3")
-
-tqdm.pandas(desc="pandas processing...")
-df = pd.read_excel("ЭТ_Новости.xlsx")
-
-bulk(es, heads_actions(), chunk_size=1000, max_retries=2)
-
-es.indices.refresh(index=index_name)
-es.indices.forcemerge(index=index_name, max_num_segments=1, request_timeout=120)
-
-bulk(es, vector_actions(), chunk_size=50, max_retries=10, request_timeout=60)
-
-es.indices.refresh(index=index_name)
-es.indices.forcemerge(index=index_name, max_num_segments=1, request_timeout=300)
-
 def create_mapping_and_reindex(index, text_column_name, empty_only):
     # 1. Add mapping for text_column_name with _emb postfix
     new_mapping = _create_mapping_for_emb(index, text_column_name)
@@ -256,8 +353,12 @@ def reindex_existing_embs(index):
     # 3. reindex elastic
     return changed
 
-def semantic_search(index, column_name, search_text, num_results):
-    search_text_emb = embed(search_text).numpy()[0]
+def semantic_search(index, column_name, search_text, num_results, data_columns="", img_flag=False):
+    if img_flag.lower()=="true":
+        search_text_emb = embed_text_img(search_text)
+    else:
+        search_text_emb = embed_text(search_text)
+        
     body = {
     "query": {
         "elastiknn_nearest_neighbors": {
@@ -271,6 +372,12 @@ def semantic_search(index, column_name, search_text, num_results):
             }
         }
     }
-
-    res = es.search(index=index, body=body, size=int(num_results), _source=[column_name])
+    res = es.search(index=index, body=body, size=int(num_results), _source=[column_name, *(data_columns.split(",") if data_columns else [])])
     return res
+
+
+# Image embedding part
+
+# 
+
+# image_addition()

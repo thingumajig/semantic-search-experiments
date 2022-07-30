@@ -9,6 +9,16 @@ app = FastAPI()
 async def root():
     return "Ready!"
 
+@app.get("/prepare_img_data/")
+async def prepare_img_data():
+    num = pr.image_addition()
+    return f"Done! {num} images added"
+
+@app.get("/prepare_text_data/")
+async def prepare_text_data():
+    pr.news_addition()
+    return "Done!"
+
 @app.post("/add_record/")
 async def add_record(index: str = Form(default=""), column_name: str = Form(default=""), data: str = Form(default="")):
     return pr.add_record(index, column_name, data)
@@ -42,6 +52,9 @@ async def reindex_existing_embs(index: str = Form(default="")):
 async def semantic_search(index: str = Form(default=""), 
                 column_name: str = Form(default=""), 
                 query: str = Form(default=""), 
-                num_results: str = Form(default="5")):
-    return pr.semantic_search(index, column_name, query, num_results)
+                num_results: str = Form(default="5"),
+                data_columns: str = Form(default=""),
+                img_flag: str = Form(default="False")):
+    return pr.semantic_search(index, column_name, query, num_results, data_columns, img_flag)
+
 

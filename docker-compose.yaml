@@ -68,6 +68,25 @@ services:
         networks:
             resolute:
                 ipv4_address: 172.21.0.5
+                
+    embed_service:
+        build:
+            context: ./embed_docker
+            dockerfile: Dockerfile
+        container_name: embed_service
+        ports:
+          - "89:89"
+        depends_on:
+          - "elasticsearch_master"
+        volumes:
+          - data01:/usr/share/elasticsearch/data
+        ulimits:
+          memlock:
+            soft: -1
+            hard: -1
+        networks:
+            resolute:
+                ipv4_address: 172.21.0.6
 
 networks:
     resolute:

@@ -7,6 +7,7 @@ authors = ["thingumajig <artifex.i@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 jupyterlab = "^3.4.2"
+Pillow = "9.1.0"
 elasticsearch = "7.17.3"
 openpyxl = "^3.0.10"
 tensorflow-text = "2.4.3"

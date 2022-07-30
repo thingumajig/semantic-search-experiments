@@ -25,3 +25,11 @@ new_num = st.text_input("Количество результатов семан�
 if st.button("Изменить"):
     set_settings(new_num)
     st.write("Сохранено!")
+    
+if st.button("Индексировать новости"):
+    result = requests.get("http://172.21.0.4:80/prepare_text_data/").json()
+    st.write(result)
+    
+if st.button("Индексировать изображения"):
+    result = requests.get("http://172.21.0.4:80/prepare_img_data/").json()
+    st.write(result)

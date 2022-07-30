@@ -4,6 +4,7 @@ WORKDIR /code
 
 COPY ./pyproject.toml /code/pyproject.toml
 COPY ./ЭТ_Новости.xlsx /code/ЭТ_Новости.xlsx
+COPY ./search_imgs.zip /code/search_imgs.zip
 
 RUN pip install poetry
 RUN poetry config virtualenvs.create false \
