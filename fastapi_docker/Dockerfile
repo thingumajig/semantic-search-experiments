@@ -3,7 +3,7 @@ FROM python:3.8.0
 WORKDIR /code 
 
 COPY ./pyproject.toml /code/pyproject.toml
-COPY ./ЭТ_Новости.xlsx /code/ЭТ_Новости.xlsx
+COPY ./Трудовой_кодекс.xlsx /code/Трудовой_кодекс.xlsx
 COPY ./search_imgs.zip /code/search_imgs.zip
 
 RUN pip install poetry

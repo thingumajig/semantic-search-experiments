@@ -16,7 +16,7 @@ async def prepare_img_data():
 
 @app.get("/prepare_text_data/")
 async def prepare_text_data():
-    pr.news_addition()
+    pr.data_addition()
     return "Done!"
 
 @app.post("/add_record/")
@@ -48,13 +48,18 @@ async def create_mapping_and_reindex(index: str = Form(default=""),
 async def reindex_existing_embs(index: str = Form(default="")):
     return pr.reindex_existing_embs(index)
 
+@app.post("/field_search/")
+async def field_search(index: str = Form(default=""),
+                column_name: str = Form(default=""),
+                query: str = Form(default=""),
+                num_results: str = Form(default="5")):
+    return pr.field_search(index, column_name, query, num_results,)
+
 @app.post("/semantic_search/")
-async def semantic_search(index: str = Form(default=""), 
-                column_name: str = Form(default=""), 
-                query: str = Form(default=""), 
+async def semantic_search(index: str = Form(default=""),
+                column_name: str = Form(default=""),
+                query: str = Form(default=""),
                 num_results: str = Form(default="5"),
                 data_columns: str = Form(default=""),
                 img_flag: str = Form(default="False")):
     return pr.semantic_search(index, column_name, query, num_results, data_columns, img_flag)
-
-

@@ -2,8 +2,6 @@ import requests
 import streamlit as st
 import pandas as pd
 
-
-# https://discuss.streamlit.io/t/version-0-64-0-deprecation-warning-for-st-file-uploader-decoding/4465
 st.set_option("deprecation.showfileUploaderEncoding", False)
 
 st.title("Реиндексация записей без эмбеддингов")

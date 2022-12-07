@@ -16,8 +16,7 @@ def get_settings():
     with open(settings_file, "r") as f:
         data = json.load(f)
         return data["search_k"]
-    
-# https://discuss.streamlit.io/t/version-0-64-0-deprecation-warning-for-st-file-uploader-decoding/4465
+
 st.set_option("deprecation.showfileUploaderEncoding", False)
     
 st.title("Настройки")
@@ -26,10 +25,6 @@ if st.button("Изменить"):
     set_settings(new_num)
     st.write("Сохранено!")
     
-if st.button("Индексировать новости"):
+if st.button("Индексировать данные"):
     result = requests.get("http://172.21.0.4:80/prepare_text_data/").json()
-    st.write(result)
-    
-if st.button("Индексировать изображения"):
-    result = requests.get("http://172.21.0.4:80/prepare_img_data/").json()
     st.write(result)

@@ -11,4 +11,4 @@ RUN pip install streamlit
 COPY ./pages/ /code/pages/
 COPY /Semantic_search.py /code/Semantic_search.py
 COPY /settings.json /code/settings.json
-CMD ["streamlit", "run", "Semantic_search.py"]
+CMD ["streamlit", "run", "Semantic_search.py", "--server.enableCORS", "false"]

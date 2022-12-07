@@ -7,9 +7,9 @@ import pandas as pd
 st.set_option("deprecation.showfileUploaderEncoding", False)
 
 st.title("Добавление записи")
-index = st.text_input("Введите индекс:", value="news-headers")
+index = st.text_input("Введите индекс:", value="tk")
 id = st.text_input("Введите id:")
-column_name = st.text_input("Введите название колонки:", value="title")
+column_name = st.text_input("Введите название колонки:", value="text")
 if st.button("Добавить"):
     result = requests.post(f"http://172.21.0.4:80/add_embs/", data={"index":index, "column_name":column_name, "id":id}).json()
     try:
