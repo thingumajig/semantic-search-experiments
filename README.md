@@ -67,7 +67,7 @@ poetry shell
 jupyter lab --ip 0.0.0.0 --no-browser --port=8888 --allow-root
 ```
 
-Шаг 4: В браузере откройте запущенный jupyter и выполните ```prepare_labor_law_index.ipynb```
+Шаг 4: В браузере откройте запущенный jupyter и выполните ```prepare_labor_law_index.ipynb``` для наполнения поискового индекса данными
 
 Шаг 5: Откройте в браузере ссылку основного приложения для поиска на основе настроек ```docker-compose.yaml```
 
